@@ -47,6 +47,7 @@ public class GameManager : MonoBehaviourPunCallbacks
     }
 
 
+    //Notify the network that a new client has connected to the current room
     [PunRPC]
     private void ImInGame()
     {
@@ -64,16 +65,20 @@ public class GameManager : MonoBehaviourPunCallbacks
     
     private void SpawnPlayer()
     {
+        //pick a spawn point to spawn at
         var spawnPointNumber = Random.Range(0, _spawnPoints.Count);
         
+        //Instantiate the player at that point
         _playerObj = PhotonNetwork.Instantiate(_playerPrefabLocation,
             _spawnPoints[spawnPointNumber].position, Quaternion.identity);
         
+        //Remove that spawn point from the available spawn points so players
+        //don't collide on spawn
         photonView.RPC("RemoveSpawnPoint", RpcTarget.AllBuffered, spawnPointNumber);
         
         _playerScript = _playerObj.GetComponent<PlayerController>();
 
-        //initialize the player
+        //Initialize the player
         _playerScript.photonView.RPC("Initialize", RpcTarget.All, PhotonNetwork.LocalPlayer);
     }
 

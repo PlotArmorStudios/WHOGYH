@@ -25,27 +25,26 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     [Header("Components")]
     [SerializeField] private Rigidbody _rigidbody;
     public Player PhotonPlayer;
-    public SoundHandler Audio { get; private set; }
+    public PlayerSoundHandler Audio { get; private set; }
 
     [PunRPC]
     public void Initialize(Player player)
     {
         PhotonPlayer = player;
+        
+        //Give the player an int id based on the network's id of the client
         id = player.ActorNumber;
 
         GameManager.Instance.Players[id - 1] = this;
-
-        //give the first player the hat
-        //if (id == 1)
-          //  GameManager.Instance.GiveHat(id, true);
         
+        //Separate all of the clients' inputs from each other
         if (!photonView.IsMine)
             _rigidbody.isKinematic = true;
     }
 
     private void Start()
     {
-        Audio = GetComponent<SoundHandler>();
+        Audio = GetComponent<PlayerSoundHandler>();
     }
 
     private void Update()
@@ -54,6 +53,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         {
             if (CurrentHatTime >= GameManager.Instance.TimeToWin && !GameManager.Instance.GameEnded)
             {
+                //Call "Win the game" only through one client and RPC it to all other clients
                 WinTheGame();
             }
         }
@@ -67,7 +67,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         
         if (Input.GetKeyDown((KeyCode.Space)))
         {
-            TryJump();
+            Jump();
         }
         
         //track the amount of time we are wearing the hat
@@ -89,7 +89,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         _rigidbody.velocity = new Vector3(x, _rigidbody.velocity.y, z);
     }
 
-    private void TryJump()
+    private void Jump()
     {
         Ray ray = new Ray(transform.position, Vector3.down);
 
@@ -121,9 +121,12 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         }
     }
 
+    //Write and read the value of CurrentHatTime to all players
     public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
     {
+        //client writing value to server
         if(stream.IsWriting) stream.SendNext(CurrentHatTime);
+        //client reading value from server
         else if (stream.IsReading) CurrentHatTime = (float) stream.ReceiveNext();
     }
 }
